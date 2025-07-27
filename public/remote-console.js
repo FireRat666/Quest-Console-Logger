@@ -19,15 +19,6 @@ if (window.isBanter) {
             info: console.info.bind(console),
         };
 
-        // Wait for the Banter environment and Unity to be fully loaded
-        async function waitForBanterReady() {
-            const chatscene = BS.BanterScene.GetInstance();
-            while (!chatscene || !chatscene.unityLoaded) {
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
-            return chatscene;
-        }
-
         // Helper to format any kind of argument into a readable string
         function formatLogArguments(args) {
             return args.map(arg => {
@@ -119,9 +110,8 @@ if (window.isBanter) {
         }
 
         // --- Main Initialization ---
-        async function main() {
+        function main() {
             try {
-                await waitForBanterReady();
                 initializeWebSocket();
 
                 // Override all console methods to intercept, simplify, and forward logs.
