@@ -80,18 +80,13 @@
         <button id="clear-btn">Clear</button>
     </div>
     <div id="log-container">
-        <div class="log-entry">
-            <span class="log-timestamp"></span>
-            <span class="log-level log-level-info">INFO</span>
-            <span class="log-message">Waiting for logs from the Banter space...</span>
-        </div>
+        <!-- Log entries will be injected here by JavaScript -->
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const logContainer = document.getElementById('log-container');
             const clearButton = document.getElementById('clear-btn');
-
             function appendLog(level, message, timestamp) {
                 const entry = document.createElement('div');
                 entry.className = 'log-entry';
@@ -101,10 +96,10 @@
                 logContainer.appendChild(entry);
                 logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll
             }
+            function handleIncomingMessage(messageData) {
+                // Ignore empty or non-string messages
+                if (typeof messageData !== 'string' || !messageData) return;
 
-            function handleBanterMessage(event) {
-                // The message content is in event.detail as per Banter docs
-                const messageData = event.detail;
                 try {
                     const payload = JSON.parse(messageData);
                     if (payload && payload.type === 'BanterLog') {
@@ -112,23 +107,22 @@
                         appendLog(level, message, timestamp);
                     }
                 } catch (e) {
-                    // This might catch non-JSON messages. We can log them as raw data.
+                    // This might catch non-JSON or malformed messages. We can log them as raw data.
                     appendLog('info', `Received raw message: ${messageData}`, new Date().toISOString());
                 }
             }
-
-            // Listen for the custom 'menubrowsermessage' event on the AframeInjection object
-            if (window.AframeInjection) {
-                window.AframeInjection.addEventListener('menubrowsermessage', handleBanterMessage);
-            } else {
-                // This indicates the page is not running inside the Banter Menu Browser
-                appendLog('error', 'Banter AframeInjection not found. Cannot receive logs.', new Date().toISOString());
-            }
-
+            // Listen for Banter's specific 'menubrowsermessage' event.
+            // The event data is passed in the `event.detail` property.
+            window.addEventListener('menubrowsermessage', (event) => {
+                handleIncomingMessage(event.detail);
+            });
             clearButton.addEventListener('click', () => {
                 logContainer.innerHTML = '';
                 appendLog('info', 'Console cleared by user.', new Date().toISOString());
             });
+
+            // Display the initial waiting message
+            appendLog('info', 'Waiting for logs from the Banter space...', new Date().toISOString());
         });
     </script>
 </body>
