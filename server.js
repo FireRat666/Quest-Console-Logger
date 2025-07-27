@@ -27,10 +27,12 @@ wss.on('connection', (ws) => {
 
       // Validate the message structure before logging
       if (logData && logData.type === 'BanterLog' && logData.data) {
-        const { timestamp, level, message } = logData.data;
+        const { timestamp, level, message, user } = logData.data;
         if (timestamp && level && message) {
+          // Use the provided user identifier, or a default if it's missing.
+          const userId = user || 'ANONYMOUS';
           // Log to the server's console (this becomes the system log on Render)
-          console.log(`[${timestamp}] [${level.toUpperCase()}] ${message}`);
+          console.log(`[${timestamp}] [${userId}] [${level.toUpperCase()}] ${message}`);
         } else {
           console.warn('Received malformed BanterLog data:', messageString);
         }
@@ -48,4 +50,3 @@ wss.on('connection', (ws) => {
 server.listen(PORT, () => {
   console.log(`Server is listening for WebSocket connections on port ${PORT}`);
 });
-

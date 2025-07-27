@@ -50,13 +50,23 @@ if (window.isBanter) {
             }).join(' ');
         }
 
+        // Safely gets a user identifier, falling back gracefully if not available.
+        function getUserIdentifier() {
+            if (window.user) {
+                // Prefer ID, but fall back to name.
+                return window.user.id || window.user.name || 'anonymous';
+            }
+            // Return a temporary identifier if the user object isn't ready yet.
+            return 'loading...';
+        }
+
         // Function to send the formatted log to the browser page
         function sendLogToServer(level, message) {
             // Only send if the websocket is connected and ready
             if (websocket && websocket.readyState === WebSocket.OPEN) {
                 const logPayload = {
                     type: 'BanterLog',
-                    data: { level: level, message: message, timestamp: new Date().toISOString() }
+                    data: { user: getUserIdentifier(), level: level, message: message, timestamp: new Date().toISOString() }
                 };
                 websocket.send(JSON.stringify(logPayload));
             }
