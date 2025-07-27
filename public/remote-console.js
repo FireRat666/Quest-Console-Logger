@@ -50,6 +50,31 @@ if (window.isBanter) {
             }).join(' ');
         }
 
+        /**
+         * Intercepts log arguments and simplifies them if they match a known problematic pattern.
+         * This prevents sending huge, recursive objects over the WebSocket.
+         * @param {any[]} args - The arguments passed to the console function.
+         * @returns {any[]} The original or simplified arguments.
+         */
+        function simplifyLogArguments(args) {
+            // Filter for the "user joined:" event which logs a massive user object.
+            if (args.length > 1 && typeof args[0] === 'string' && args[0].trim().endsWith('user joined:') && typeof args[1] === 'object' && args[1] !== null) {
+                const user = args[1];
+                // Create a new, clean object with only the essential, non-recursive properties.
+                const simplifiedUser = {
+                    id: user.id,
+                    name: user.name,
+                    uid: user.uid,
+                    isLocal: user.isLocal,
+                    color: user.color
+                };
+                // Return a new arguments array with the simplified object.
+                return [args[0], simplifiedUser, ...args.slice(2)];
+            }
+            // If no filter matches, return the original arguments.
+            return args;
+        }
+
         // Safely gets a user identifier, falling back gracefully if not available.
         function getUserIdentifier() {
             if (window.user) {
@@ -99,11 +124,20 @@ if (window.isBanter) {
                 await waitForBanterReady();
                 initializeWebSocket();
 
-                // Override default console methods
-                console.log = (...args) => { originalConsole.log(...args); sendLogToServer('log', formatLogArguments(args)); };
-                console.warn = (...args) => { originalConsole.warn(...args); sendLogToServer('warn', formatLogArguments(args)); };
-                console.error = (...args) => { originalConsole.error(...args); sendLogToServer('error', formatLogArguments(args)); };
-                console.info = (...args) => { originalConsole.info(...args); sendLogToServer('info', formatLogArguments(args)); };
+                // Override all console methods to intercept, simplify, and forward logs.
+                const levels = ['log', 'warn', 'error', 'info'];
+                levels.forEach(level => {
+                    const originalFunc = originalConsole[level];
+                    console[level] = (...args) => {
+                        // 1. Log to the original console so it's visible locally.
+                        originalFunc(...args);
+                        // 2. Simplify known large objects to avoid sending massive payloads.
+                        const processedArgs = simplifyLogArguments(args);
+                        // 3. Format and send to the server.
+                        sendLogToServer(level, formatLogArguments(processedArgs));
+                    };
+                });
+
                 originalConsole.log("Banter Log Forwarder is active. Forwarding logs to server.");
             } catch (error) {
                 // Use original console.error to report initialization failures.
