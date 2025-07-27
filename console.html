@@ -88,32 +88,42 @@
             const logContainer = document.getElementById('log-container');
             const clearButton = document.getElementById('clear-btn');
 
-            // A simplified logging function for raw debugging
-            function appendRawLog(data) {
+            // A logging function for raw debugging that includes the source event name
+            function appendRawLog(eventName, data) {
                 const entry = document.createElement('div');
                 entry.className = 'log-entry';
+                const dataString = (typeof data === 'object' && data !== null) ? JSON.stringify(data, null, 2) : String(data);
                 // Try to stringify objects for better visibility, otherwise just convert to string
                 try {
-                    entry.textContent = (typeof data === 'object' && data !== null) ? JSON.stringify(data, null, 2) : String(data);
+                    entry.textContent = `[Event: ${eventName}] ${dataString}`;
                 } catch (e) {
-                    entry.textContent = `[Unserializable Data Received] ${String(data)}`;
+                    entry.textContent = `[Event: ${eventName}] [Unserializable Data] ${String(data)}`;
                 }
                 logContainer.appendChild(entry);
                 logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll
             }
 
-            // Listen for any 'bantermessage' and log the raw event.detail object
+            // Diagnostic: Listen for multiple possible event names to discover the correct one.
             window.addEventListener('bantermessage', (event) => {
-                appendRawLog(event.detail);
+                appendRawLog('bantermessage', event.detail);
+            });
+
+            window.addEventListener('menubrowsermessage', (event) => {
+                appendRawLog('menubrowsermessage', event.detail);
+            });
+
+            // Standard browser message event, just in case.
+            window.addEventListener('message', (event) => {
+                appendRawLog('message', event.data);
             });
 
             clearButton.addEventListener('click', () => {
-                logContainer.innerHTML = '';
-                appendRawLog('--- Console Cleared ---');
+                logContainer.innerHTML = ''; // Clear the logs
+                appendRawLog('SYSTEM', '--- Console Cleared ---');
             });
 
             // Display the initial waiting message
-            appendRawLog('Waiting for any message from the Banter space...');
+            appendRawLog('SYSTEM', 'Waiting for any message from the Banter space...');
         });
     </script>
 </body>
