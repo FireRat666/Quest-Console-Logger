@@ -9,6 +9,9 @@ if (window.isBanter) {
         // and put the full, public URL here.
         const CONSOLE_HTML_URL = 'https://questlogs.firer.at/console.html';
 
+        // Time in milliseconds to wait before automatically opening the console viewer.
+        const AUTO_OPEN_DELAY_MS = 10000;
+
         // Keep a reference to the original console methods to avoid infinite loops
         const originalConsole = {
             log: console.log.bind(console),
@@ -16,15 +19,6 @@ if (window.isBanter) {
             error: console.error.bind(console),
             info: console.info.bind(console),
         };
-
-        // A simple check to ensure the user has configured the URL.
-        if (CONSOLE_HTML_URL.includes('firer.at')) {
-            originalConsole.error(
-                'Banter Remote Console: Please edit remote-console.js and set the CONSOLE_HTML_URL variable to the public URL of your console.html file.'
-            );
-            // We stop execution here to prevent further errors.
-            return; 
-        }
 
         // Wait for the Banter environment and Unity to be fully loaded
         async function waitForBanterReady() {
@@ -71,42 +65,30 @@ if (window.isBanter) {
         }
 
         // Creates a clickable object in the scene to open the console
-        async function createConsoleLauncher() {
-            const launcher = new BS.GameObject("ConsoleLauncherButton");
-            await launcher.AddComponent(new BS.BanterGeometry(BS.GeometryType.BoxGeometry));
-            await launcher.AddComponent(new BS.BoxCollider(false));
-            await launcher.AddComponent(new BS.BanterMaterial("Unlit/Color", "", new BS.Vector4(0.1, 0.4, 0.8, 1)));
-            
-            const transform = await launcher.AddComponent(new BS.Transform());
-            transform.localPosition = new BS.Vector3(0, 1.5, -2); // Position it in front of the default spawn
-            transform.localScale = new BS.Vector3(0.3, 0.3, 0.1);
-
-            const text = await launcher.AddComponent(new BS.BanterText("Open\nConsole", new BS.Vector4(1, 1, 1, 1)));
-            text.fontSize = 0.3;
-            text.anchor = BS.TextAnchor.MiddleCenter;
-        	await launcher.SetLayer(5); // Set to UI layer
-
-            launcher.OnClicked = () => {
-                originalConsole.log(`Remote Console: Opening menu browser to ${CONSOLE_HTML_URL}`);
-                BS.BanterScene.GetInstance().OpenMenuPage(CONSOLE_HTML_URL);
-            };
+        async function ConsoleLauncher() {
 			setTimeout(() => { 
-                BS.BanterScene.GetInstance().OpenMenuPage(CONSOLE_HTML_URL);
-			}, 10000);
+                BS.BanterScene.GetInstance().OpenPage(CONSOLE_HTML_URL);
+			}, AUTO_OPEN_DELAY_MS);
         }
 
         // --- Main Initialization ---
         async function main() {
-            await waitForBanterReady();
+            try {
+                await waitForBanterReady();
 
-            // Override default console methods
-            console.log = (...args) => { originalConsole.log.apply(console, args); sendLogToMenuBrowser('log', formatLogArguments(args)); };
-            console.warn = (...args) => { originalConsole.warn.apply(console, args); sendLogToMenuBrowser('warn', formatLogArguments(args)); };
-            console.error = (...args) => { originalConsole.error.apply(console, args); sendLogToMenuBrowser('error', formatLogArguments(args)); };
-            console.info = (...args) => { originalConsole.info.apply(console, args); sendLogToMenuBrowser('info', formatLogArguments(args)); };
+                // Override default console methods
+                console.log = (...args) => { originalConsole.log(...args); sendLogToMenuBrowser('log', formatLogArguments(args)); };
+                console.warn = (...args) => { originalConsole.warn(...args); sendLogToMenuBrowser('warn', formatLogArguments(args)); };
+                console.error = (...args) => { originalConsole.error(...args); sendLogToMenuBrowser('error', formatLogArguments(args)); };
+                console.info = (...args) => { originalConsole.info(...args); sendLogToMenuBrowser('info', formatLogArguments(args)); };
 
-            await createConsoleLauncher();
-            originalConsole.log("Banter Remote Console is now active. Click the blue button to open the console in your menu.");
+                await ConsoleLauncher();
+                originalConsole.log("Banter Remote Console is now active. Open the Banter Menu to view logs.");
+            } catch (error) {
+                // Use original console.error to report initialization failures.
+                // This won't be sent to the remote console, but will appear in the native console if accessible.
+                originalConsole.error("Banter Remote Console failed to initialize:", error);
+            }
         }
 
         main();
