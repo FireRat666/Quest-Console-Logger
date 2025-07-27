@@ -7,7 +7,7 @@ if (window.isBanter) {
         // The WebSocket URL of your logging server.
         // IMPORTANT: This should be the URL of your Render.com service.
         // Use wss:// for secure connections (e.g., 'wss://your-app-name.onrender.com').
-        const WEBSOCKET_URL = 'wss://your-app-name.onrender.com';
+        const WEBSOCKET_URL = 'wss://quest-console-logger.onrender.com';
 
         let websocket = null;
 
