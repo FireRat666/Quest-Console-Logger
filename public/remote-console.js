@@ -50,7 +50,9 @@ if (window.isBanter) {
         function simplifyLogArguments(args) {
             // Filter for "user joined:" or "user left:" events which log a massive user object.
             const logString = args.length > 0 && typeof args[0] === 'string' ? args[0].trim() : '';
-            const isUserEvent = logString.endsWith('user joined:') || logString.endsWith('user left:');
+            const isUserEvent = logString.endsWith('user joined:') ||
+                                logString.endsWith('user left:') ||
+                                logString.endsWith('got user-joined event for user that already joined:');
 
             if (isUserEvent && args.length > 1 && typeof args[1] === 'object' && args[1] !== null) {
                 const user = args[1];
