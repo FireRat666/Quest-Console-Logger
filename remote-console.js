@@ -1,16 +1,15 @@
-// Banter Remote Console by Gemini
-// This script intercepts console logs and forwards them to the Banter Menu Browser for easy debugging on Quest.
+// Banter WebSocket Log Forwarder by Gemini
+// This script intercepts console logs and forwards them to a WebSocket server for remote debugging.
 
 if (window.isBanter) {
     (function() {
         // --- Configuration ---
-        // The URL of your console.html page.
-        // IMPORTANT: You MUST upload console.html to a web host (like GitHub Pages, Netlify, etc.)
-        // and put the full, public URL here.
-        const CONSOLE_HTML_URL = 'https://questlogs.firer.at/console.html';
+        // The WebSocket URL of your logging server.
+        // IMPORTANT: This should be the URL of your Render.com service.
+        // Use wss:// for secure connections (e.g., 'wss://your-app-name.onrender.com').
+        const WEBSOCKET_URL = 'wss://your-app-name.onrender.com';
 
-        // Time in milliseconds to wait before automatically opening the console viewer.
-        const AUTO_OPEN_DELAY_MS = 10000;
+        let websocket = null;
 
         // Keep a reference to the original console methods to avoid infinite loops
         const originalConsole = {
@@ -52,39 +51,50 @@ if (window.isBanter) {
         }
 
         // Function to send the formatted log to the browser page
-        function sendLogToMenuBrowser(level, message) {
-            const scene = BS.BanterScene.GetInstance();
-            if (!scene) return;
-
-            const logPayload = {
-                type: 'BanterLog',
-                data: { level: level, message: message, timestamp: new Date().toISOString() }
-            };
-			originalConsole.log("Sending log to Banter Menu Browser:", logPayload);
-            // Use the native API to send a message to the user's menu browser, as per documentation.
-            window.sendMenuBrowserMessage(JSON.stringify(logPayload));
+        function sendLogToServer(level, message) {
+            // Only send if the websocket is connected and ready
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                const logPayload = {
+                    type: 'BanterLog',
+                    data: { level: level, message: message, timestamp: new Date().toISOString() }
+                };
+                websocket.send(JSON.stringify(logPayload));
+            }
         }
 
-        // Creates a clickable object in the scene to open the console
-        async function ConsoleLauncher() {
-			setTimeout(() => { 
-                BS.BanterScene.GetInstance().OpenPage(CONSOLE_HTML_URL);
-			}, AUTO_OPEN_DELAY_MS);
+        // Establishes and manages the WebSocket connection
+        function initializeWebSocket() {
+            originalConsole.log(`Banter Log Forwarder: Attempting to connect to ${WEBSOCKET_URL}`);
+            websocket = new WebSocket(WEBSOCKET_URL);
+
+            websocket.onopen = () => {
+                originalConsole.log('Banter Log Forwarder: WebSocket connection established.');
+            };
+
+            websocket.onclose = (event) => {
+                originalConsole.warn('Banter Log Forwarder: WebSocket connection closed. Reconnecting in 5s...', event.reason);
+                websocket = null; // Clear the old instance
+                setTimeout(initializeWebSocket, 5000); // Reconnect logic
+            };
+
+            websocket.onerror = (error) => {
+                originalConsole.error('Banter Log Forwarder: WebSocket error:', error);
+                // onclose will likely fire after this, triggering the reconnect.
+            };
         }
 
         // --- Main Initialization ---
         async function main() {
             try {
                 await waitForBanterReady();
+                initializeWebSocket();
 
                 // Override default console methods
-                console.log = (...args) => { originalConsole.log(...args); sendLogToMenuBrowser('log', formatLogArguments(args)); };
-                console.warn = (...args) => { originalConsole.warn(...args); sendLogToMenuBrowser('warn', formatLogArguments(args)); };
-                console.error = (...args) => { originalConsole.error(...args); sendLogToMenuBrowser('error', formatLogArguments(args)); };
-                console.info = (...args) => { originalConsole.info(...args); sendLogToMenuBrowser('info', formatLogArguments(args)); };
-
-                await ConsoleLauncher();
-                originalConsole.log("Banter Remote Console is now active. Open the Banter Menu to view logs.");
+                console.log = (...args) => { originalConsole.log(...args); sendLogToServer('log', formatLogArguments(args)); };
+                console.warn = (...args) => { originalConsole.warn(...args); sendLogToServer('warn', formatLogArguments(args)); };
+                console.error = (...args) => { originalConsole.error(...args); sendLogToServer('error', formatLogArguments(args)); };
+                console.info = (...args) => { originalConsole.info(...args); sendLogToServer('info', formatLogArguments(args)); };
+                originalConsole.log("Banter Log Forwarder is active. Forwarding logs to server.");
             } catch (error) {
                 // Use original console.error to report initialization failures.
                 // This won't be sent to the remote console, but will appear in the native console if accessible.
