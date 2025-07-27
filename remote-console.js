@@ -60,8 +60,9 @@ if (window.isBanter) {
                 type: 'BanterLog',
                 data: { level: level, message: message, timestamp: new Date().toISOString() }
             };
+			originalConsole.log("Sending log to Banter Menu Browser:", logPayload);
             // Use the native API to send a message to the user's menu browser, as per documentation.
-            scene.SendBrowserMessage(JSON.stringify(logPayload));
+            window.sendMenuBrowserMessage(JSON.stringify(logPayload));
         }
 
         // Creates a clickable object in the scene to open the console

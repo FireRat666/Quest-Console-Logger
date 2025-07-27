@@ -111,10 +111,11 @@
                     appendLog('info', `Received raw message: ${messageData}`, new Date().toISOString());
                 }
             }
-            // Listen for Banter's specific 'menubrowsermessage' event.
-            // The event data is passed in the `event.detail` property.
-            window.addEventListener('menubrowsermessage', (event) => {
-                handleIncomingMessage(event.detail);
+            // Per Banter documentation, listen for the 'bantermessage' event.
+            // The message content sent from the space is in `event.detail.message`.
+            window.addEventListener('bantermessage', (event) => {
+                // The event.detail object might contain other properties, but the raw message is what we need.
+                handleIncomingMessage(event.detail.message);
             });
             clearButton.addEventListener('click', () => {
                 logContainer.innerHTML = '';
