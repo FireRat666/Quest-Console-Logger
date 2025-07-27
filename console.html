@@ -87,46 +87,33 @@
         document.addEventListener('DOMContentLoaded', () => {
             const logContainer = document.getElementById('log-container');
             const clearButton = document.getElementById('clear-btn');
-            function appendLog(level, message, timestamp) {
+
+            // A simplified logging function for raw debugging
+            function appendRawLog(data) {
                 const entry = document.createElement('div');
                 entry.className = 'log-entry';
-                const time = new Date(timestamp).toLocaleTimeString();
-                entry.innerHTML = `<span class="log-timestamp">${time}</span><span class="log-level log-level-${level.toLowerCase()}">${level}</span><span class="log-message"></span>`;
-                entry.querySelector('.log-message').textContent = message; // Use textContent to prevent XSS
+                // Try to stringify objects for better visibility, otherwise just convert to string
+                try {
+                    entry.textContent = (typeof data === 'object' && data !== null) ? JSON.stringify(data, null, 2) : String(data);
+                } catch (e) {
+                    entry.textContent = `[Unserializable Data Received] ${String(data)}`;
+                }
                 logContainer.appendChild(entry);
                 logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll
             }
-            function handleIncomingMessage(messageData) {
-                // Ignore empty or non-string messages
-                if (typeof messageData !== 'string' || !messageData) return;
 
-                try {
-                    const payload = JSON.parse(messageData);
-                    if (payload && payload.type === 'BanterLog') {
-                        const { level, message, timestamp } = payload.data;
-                        appendLog(level, message, timestamp);
-                    }
-                } catch (e) {
-                    // This might catch non-JSON or malformed messages. We can log them as raw data.
-                    appendLog('info', `Received raw message: ${messageData}`, new Date().toISOString());
-                }
-            }
-            // Per Banter documentation, listen for the 'bantermessage' event.
-            // The message content sent from the space is in `event.detail.message`.
+            // Listen for any 'bantermessage' and log the raw event.detail object
             window.addEventListener('bantermessage', (event) => {
-                // The message could be in event.detail.message (as per some docs)
-                // or it could be event.detail itself. We check for the more specific
-                // path first and fall back to the broader one to be more robust.
-                const messageData = event.detail && event.detail.message ? event.detail.message : event.detail;
-                handleIncomingMessage(messageData);
+                appendRawLog(event.detail);
             });
+
             clearButton.addEventListener('click', () => {
                 logContainer.innerHTML = '';
-                appendLog('info', 'Console cleared by user.', new Date().toISOString());
+                appendRawLog('--- Console Cleared ---');
             });
 
             // Display the initial waiting message
-            appendLog('info', 'Waiting for logs from the Banter space...', new Date().toISOString());
+            appendRawLog('Waiting for any message from the Banter space...');
         });
     </script>
 </body>
