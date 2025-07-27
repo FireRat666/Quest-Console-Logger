@@ -7,6 +7,9 @@ const PORT = process.env.PORT || 3000;
 
 // Create a simple Express app. Render uses this for health checks.
 const app = express();
+
+// Serve static files from the 'public' directory
+app.use(express.static('public'));
 app.get('/', (req, res) => {
   res.status(200).send('WebSocket Log Server is running.');
 });
@@ -22,9 +25,16 @@ wss.on('connection', (ws) => {
       const messageString = message.toString();
       const logData = JSON.parse(messageString);
 
-      // Log to the server's console (this becomes the system log on Render)
-      // Example format: [2025-07-27T10:30:00.123Z] [INFO] This is a log message.
-      console.log(`[${logData.data.timestamp}] [${logData.data.level.toUpperCase()}] ${logData.data.message}`);
+      // Validate the message structure before logging
+      if (logData && logData.type === 'BanterLog' && logData.data) {
+        const { timestamp, level, message } = logData.data;
+        if (timestamp && level && message) {
+          // Log to the server's console (this becomes the system log on Render)
+          console.log(`[${timestamp}] [${level.toUpperCase()}] ${message}`);
+        } else {
+          console.warn('Received malformed BanterLog data:', messageString);
+        }
+      }
     } catch (error) {
       console.error('Failed to process message:', message.toString(), error);
     }
