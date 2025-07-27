@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Banter Space Console</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Consolas, 'Courier New', monospace;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            margin: 0;
+            padding: 0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        #header {
+            background-color: #333;
+            padding: 8px 12px;
+            border-bottom: 1px solid #444;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+        }
+        #header h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: normal;
+        }
+        #clear-btn {
+            background-color: #555;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 4px 10px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        #clear-btn:hover {
+            background-color: #666;
+        }
+        #log-container {
+            height: calc(100vh - 45px); /* Full height minus header */
+            overflow-y: auto;
+            padding: 10px;
+            box-sizing: border-box;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .log-entry {
+            display: flex;
+            border-bottom: 1px solid #333;
+            padding: 4px 0;
+        }
+        .log-timestamp {
+            color: #888;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        .log-level {
+            font-weight: bold;
+            margin-right: 10px;
+            text-transform: uppercase;
+            flex-shrink: 0;
+            width: 50px; /* Align messages */
+        }
+        .log-level-log { color: #bbbbbb; }
+        .log-level-info { color: #9cdcfe; }
+        .log-level-warn { color: #ffd700; }
+        .log-level-error { color: #f44747; }
+        .log-message {
+            flex-grow: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>Banter Remote Console</h1>
+        <button id="clear-btn">Clear</button>
+    </div>
+    <div id="log-container">
+        <div class="log-entry">
+            <span class="log-timestamp"></span>
+            <span class="log-level log-level-info">INFO</span>
+            <span class="log-message">Waiting for logs from the Banter space...</span>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const logContainer = document.getElementById('log-container');
+            const clearButton = document.getElementById('clear-btn');
+
+            // Listen for messages from the Banter space
+            window.addEventListener("message", (event) => {
+                try {
+                    const payload = JSON.parse(event.data);
+                    if (payload && payload.type === 'BanterLog') {
+                        const { level, message, timestamp } = payload.data;
+                        appendLog(level, message, timestamp);
+                    }
+                } catch (e) {
+                    // This might catch non-JSON messages. We can log them as raw data.
+                    appendLog('info', `Received raw message: ${event.data}`, new Date().toISOString());
+                }
+            });
+
+            function appendLog(level, message, timestamp) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                const time = new Date(timestamp).toLocaleTimeString();
+                entry.innerHTML = `<span class="log-timestamp">${time}</span><span class="log-level log-level-${level.toLowerCase()}">${level}</span><span class="log-message"></span>`;
+                entry.querySelector('.log-message').textContent = message; // Use textContent to prevent XSS
+                logContainer.appendChild(entry);
+                logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll
+            }
+
+            clearButton.addEventListener('click', () => {
+                logContainer.innerHTML = '';
+                appendLog('info', 'Console cleared by user.', new Date().toISOString());
+            });
+        });
+    </script>
+</body>
+</html>
