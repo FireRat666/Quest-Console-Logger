@@ -114,8 +114,11 @@
             // Per Banter documentation, listen for the 'bantermessage' event.
             // The message content sent from the space is in `event.detail.message`.
             window.addEventListener('bantermessage', (event) => {
-                // The event.detail object might contain other properties, but the raw message is what we need.
-                handleIncomingMessage(event.detail.message);
+                // The message could be in event.detail.message (as per some docs)
+                // or it could be event.detail itself. We check for the more specific
+                // path first and fall back to the broader one to be more robust.
+                const messageData = event.detail && event.detail.message ? event.detail.message : event.detail;
+                handleIncomingMessage(messageData);
             });
             clearButton.addEventListener('click', () => {
                 logContainer.innerHTML = '';
