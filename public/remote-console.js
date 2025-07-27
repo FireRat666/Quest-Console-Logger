@@ -48,8 +48,11 @@ if (window.isBanter) {
          * @returns {any[]} The original or simplified arguments.
          */
         function simplifyLogArguments(args) {
-            // Filter for the "user joined:" event which logs a massive user object.
-            if (args.length > 1 && typeof args[0] === 'string' && args[0].trim().endsWith('user joined:') && typeof args[1] === 'object' && args[1] !== null) {
+            // Filter for "user joined:" or "user left:" events which log a massive user object.
+            const logString = args.length > 0 && typeof args[0] === 'string' ? args[0].trim() : '';
+            const isUserEvent = logString.endsWith('user joined:') || logString.endsWith('user left:');
+
+            if (isUserEvent && args.length > 1 && typeof args[1] === 'object' && args[1] !== null) {
                 const user = args[1];
                 // Create a new, clean object with only the essential, non-recursive properties.
                 const simplifiedUser = {
