@@ -67,6 +67,15 @@ if (window.isBanter) {
                 // Return a new arguments array with the simplified object.
                 return [args[0], simplifiedUser, ...args.slice(2)];
             }
+
+            // Filter for "FIRESCREEN2: user-joined" which logs a massive scene object.
+            const isFirescreenUserJoined = logString.endsWith('user-joined');
+            if (isFirescreenUserJoined && args.length > 1 && typeof args[1] === 'object' && args[1] !== null) {
+                // The second argument is a massive scene object. We don't need to log it.
+                // Just return the message and a placeholder.
+                return [args[0], '[Large scene object omitted]', ...args.slice(2)];
+            }
+
             // If no filter matches, return the original arguments.
             return args;
         }
