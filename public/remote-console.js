@@ -48,29 +48,25 @@ if (window.isBanter) {
          * @returns {any[]} The original or simplified arguments.
          */
         function simplifyLogArguments(args) {
-            // Filter for "user joined:" or "user left:" events which log a massive user object.
             const logString = args.length > 0 && typeof args[0] === 'string' ? args[0].trim() : '';
-            const isUserEvent = logString.endsWith('user joined:') ||
-                                logString.endsWith('user left:') ||
-                                logString.endsWith('got user-joined event for user that already joined:');
 
-            if (isUserEvent && args.length > 1 && typeof args[1] === 'object' && args[1] !== null) {
+            // Pattern 1: Standard user join/leave events with a user object.
+            if ((logString === 'user joined:' ||
+                 logString === 'user left:' ||
+                 logString === 'got user-joined event for user that already joined:') &&
+                args.length > 1 && typeof args[1] === 'object' && args[1] !== null) {
                 const user = args[1];
                 // Create a new, clean object with only the essential, non-recursive properties.
                 const simplifiedUser = {
-                    id: user.id,
-                    name: user.name,
-                    uid: user.uid,
-                    isLocal: user.isLocal,
-                    color: user.color
+                    id: user.id, name: user.name, uid: user.uid, isLocal: user.isLocal, color: user.color
                 };
                 // Return a new arguments array with the simplified object.
                 return [args[0], simplifiedUser, ...args.slice(2)];
             }
 
-            // Filter for "FIRESCREEN2: user-joined" which logs a massive scene object.
-            const isFirescreenUserJoined = logString.endsWith('user-joined');
-            if (isFirescreenUserJoined && args.length > 1 && typeof args[1] === 'object' && args[1] !== null) {
+            // Pattern 2: "FIRESCREEN2: user-joined" event which logs a massive scene object.
+            // We use a specific check to avoid accidentally matching other logs.
+            if (logString === 'FIRESCREEN2: user-joined' && args.length > 1 && typeof args[1] === 'object' && args[1] !== null) {
                 // The second argument is a massive scene object. We don't need to log it.
                 // Just return the message and a placeholder.
                 return [args[0], '[Large scene object omitted]', ...args.slice(2)];
