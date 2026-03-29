@@ -1,8 +1,7 @@
 // Banter WebSocket Log Forwarder by Gemini
 // This script intercepts console logs and forwards them to a WebSocket server for remote debugging.
 
-if (window.isBanter) {
-    (function() {
+(function () {
         // --- Configuration ---
         // The WebSocket URL of your logging server.
         // IMPORTANT: This should be the URL of your Render.com service.
@@ -146,6 +145,14 @@ if (window.isBanter) {
             }
         }
 
+        // main();
+    if (window.BS) {
+        console.log("[NativeYT] Window.BS True");
         main();
-    })(); // IIFE to avoid polluting the global scope
-}
+    } else {
+        console.log("[NativeYT] Window.BS False");
+        window.addEventListener("unity-loaded", main);
+        // window.addEventListener("bs-loaded", main);
+    }
+    console.log("[NativeYT] Script End");
+})();
